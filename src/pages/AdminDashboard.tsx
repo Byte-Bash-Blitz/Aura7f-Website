@@ -1257,6 +1257,18 @@ export default function AdminDashboard() {
                 onClose={() => setGoogleSheetsModalOpen(false)}
                 adminSlots={adminSlots}
                 eventTitle={viewingEvent?.title || 'Event'}
+                initialSheetUrl={viewingEvent?.google_sheet_url || (viewingEvent?.id ? localStorage.getItem(`aura_sheet_url_${viewingEvent.id}`) : '') || ''}
+                onSheetCreated={async (sheetUrl) => {
+                    if (viewingEvent) {
+                        localStorage.setItem(`aura_sheet_url_${viewingEvent.id}`, sheetUrl);
+                        setViewingEvent({ ...viewingEvent, google_sheet_url: sheetUrl });
+                        try {
+                            await supabase.from('events').update({ google_sheet_url: sheetUrl }).eq('id', viewingEvent.id);
+                        } catch (e) {
+                            console.error('Failed to update event google_sheet_url in DB:', e);
+                        }
+                    }
+                }}
             />
         </div>
     );

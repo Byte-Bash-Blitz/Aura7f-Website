@@ -26,6 +26,7 @@ export interface Event {
   image_url?: string
   max_registrations?: number
   has_slots?: boolean
+  google_sheet_url?: string
   created_at: string
   updated_at: string
 }

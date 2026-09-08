@@ -5,48 +5,84 @@ import {
   getEmbeddableSheetUrl,
   sendDataToGoogleSheetWebhook,
   syncBatchToGoogleSheet,
+  autoCreateGoogleSheetViaApi,
   GOOGLE_APPS_SCRIPT_TEMPLATE
 } from '../../lib/googleSheetsApi';
 import { extractSlotRows } from '../../lib/exportUtils';
-import { X, ExternalLink, RefreshCw, Save, Send, Copy, Check, FileSpreadsheet, Sparkles, Layers, ShieldCheck } from 'lucide-react';
+import { X, ExternalLink, RefreshCw, Save, Send, Copy, Check, FileSpreadsheet, Sparkles, Layers, ShieldCheck, Wand2, PlusCircle } from 'lucide-react';
 
 interface GoogleSheetsModalProps {
   isOpen: boolean;
   onClose: () => void;
   adminSlots?: any[];
   eventTitle?: string;
+  initialSheetUrl?: string;
+  onSheetCreated?: (url: string) => void;
 }
 
-export default function GoogleSheetsModal({ isOpen, onClose, adminSlots = [], eventTitle = 'Event' }: GoogleSheetsModalProps) {
+export default function GoogleSheetsModal({
+  isOpen,
+  onClose,
+  adminSlots = [],
+  eventTitle = 'Event',
+  initialSheetUrl,
+  onSheetCreated
+}: GoogleSheetsModalProps) {
   const [activeTab, setActiveTab] = useState<'viewer' | 'settings' | 'script'>('viewer');
   const [sheetUrl, setSheetUrl] = useState('');
   const [webhookUrl, setWebhookUrl] = useState('');
   const [embedUrl, setEmbedUrl] = useState('');
+  const [accessToken, setAccessToken] = useState('');
   
   const [copiedScript, setCopiedScript] = useState(false);
   const [savingMsg, setSavingMsg] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [autoCreating, setAutoCreating] = useState(false);
   const [syncResult, setSyncResult] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       const config = getGoogleSheetsConfig();
-      setSheetUrl(config.sheetUrl);
+      const effectiveSheetUrl = initialSheetUrl || config.sheetUrl;
+      setSheetUrl(effectiveSheetUrl);
       setWebhookUrl(config.webhookUrl);
-      setEmbedUrl(getEmbeddableSheetUrl(config.sheetUrl));
+      setAccessToken(config.accessToken || '');
+      setEmbedUrl(getEmbeddableSheetUrl(effectiveSheetUrl));
       setSavingMsg('');
       setSyncResult('');
     }
-  }, [isOpen]);
+  }, [isOpen, initialSheetUrl]);
 
   if (!isOpen) return null;
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    saveGoogleSheetsConfig({ sheetUrl, webhookUrl });
+    saveGoogleSheetsConfig({ sheetUrl, webhookUrl, accessToken });
     setEmbedUrl(getEmbeddableSheetUrl(sheetUrl));
+    if (onSheetCreated && sheetUrl) {
+      onSheetCreated(sheetUrl);
+    }
     setSavingMsg('Configuration saved successfully!');
     setTimeout(() => setSavingMsg(''), 3000);
+  };
+
+  const handleAutoCreateSheet = async () => {
+    setAutoCreating(true);
+    setSyncResult('');
+    try {
+      const res = await autoCreateGoogleSheetViaApi(eventTitle, webhookUrl, accessToken);
+      setSheetUrl(res.sheetUrl);
+      setEmbedUrl(res.embedUrl);
+      if (res.webhookUrl) setWebhookUrl(res.webhookUrl);
+      if (onSheetCreated) {
+        onSheetCreated(res.sheetUrl);
+      }
+      setSyncResult(`Success! Live Google Sheet auto-created for "${eventTitle}". Link is now active.`);
+    } catch (err: any) {
+      setSyncResult('Auto-create notice: ' + err.message);
+    } finally {
+      setAutoCreating(false);
+    }
   };
 
   const handleCopyScript = () => {
@@ -129,6 +165,14 @@ export default function GoogleSheetsModal({ isOpen, onClose, adminSlots = [], ev
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleAutoCreateSheet}
+              disabled={autoCreating}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 text-xs font-semibold transition-all disabled:opacity-50"
+              title="Auto-create a new Google Sheet via API"
+            >
+              <Wand2 size={14} /> {autoCreating ? 'Auto-Creating...' : '✨ Auto-Create Sheet'}
+            </button>
             {sheetUrl && (
               <a
                 href={sheetUrl}
@@ -188,16 +232,25 @@ export default function GoogleSheetsModal({ isOpen, onClose, adminSlots = [], ev
               {!embedUrl ? (
                 <div className="p-12 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
                   <FileSpreadsheet size={48} className="mx-auto text-slate-600 mb-3" />
-                  <h4 className="text-base font-semibold text-white">No Google Sheet URL Configured</h4>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto mt-1 mb-4">
-                    Paste your Google Sheet link in the Settings tab to embed and view live sheet data directly inside the admin panel.
+                  <h4 className="text-base font-semibold text-white">No Google Sheet Linked Yet</h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto mt-1 mb-5">
+                    Click <strong>"Auto-Create Sheet"</strong> to automatically generate a live spreadsheet, or paste an existing link in Settings.
                   </p>
-                  <button
-                    onClick={() => setActiveTab('settings')}
-                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg transition-all"
-                  >
-                    Configure Sheet URL
-                  </button>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={handleAutoCreateSheet}
+                      disabled={autoCreating}
+                      className="px-5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-lg transition-all inline-flex items-center gap-2"
+                    >
+                      <Wand2 size={15} /> {autoCreating ? 'Auto-Creating...' : '✨ Auto-Create Sheet via API'}
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('settings')}
+                      className="px-4 py-2 rounded-lg bg-white/[0.06] border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all"
+                    >
+                      Paste Existing Link
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
