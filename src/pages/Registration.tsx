@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase, Event } from '../lib/supabase';
 import { getAvailableSlots, bookSlot } from '../lib/slotApi';
 import { formatTime12h } from '../lib/utils';
+import { getGoogleSheetsConfig, sendDataToGoogleSheetWebhook } from '../lib/googleSheetsApi';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Sparkles, Calendar as CalIcon, Shield, ArrowLeft } from 'lucide-react';
 import FantasyNavbar from '../components/FantasyNavbar';
@@ -102,6 +103,27 @@ export default function Registration() {
                     await supabase.from('event_registrations').delete().eq('id', regData.id);
                     throw rpcError;
                 }
+            }
+
+            // 3. Real-time auto-sync to Live Google Sheet Webhook if configured
+            const { webhookUrl } = getGoogleSheetsConfig();
+            if (webhookUrl) {
+                const selectedSlot = availableSlots.find(s => s.id === bookingForm.slotId);
+                const slotTimeStr = selectedSlot ? `${formatTime12h(selectedSlot.start_time)} - ${formatTime12h(selectedSlot.end_time)}` : '-';
+
+                sendDataToGoogleSheetWebhook(webhookUrl, {
+                    userName: bookingForm.name,
+                    userEmail: bookingForm.email,
+                    slotTime: slotTimeStr,
+                    day: bookingDay,
+                    regNo: bookingForm.registration_no || '-',
+                    department: bookingForm.department || '-',
+                    yearSection: bookingForm.year ? `Yr ${bookingForm.year} Sec ${bookingForm.section || ''}` : '-',
+                    clan: bookingForm.clan || '-',
+                    projectTitle: bookingForm.project_title || '-',
+                    projectCategory: bookingForm.project_category || '-',
+                    projectDescription: bookingForm.project_description || '-'
+                }).catch(e => console.error('Google Sheet Webhook auto-sync error:', e));
             }
 
             setBookingState('success');

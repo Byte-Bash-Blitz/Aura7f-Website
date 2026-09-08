@@ -4,6 +4,7 @@ import { generateSlots, getAvailableSlots, cancelSlot } from '../lib/slotApi';
 import { formatTime12h } from '../lib/utils';
 import { exportSlotsToExcel, exportSlotsToPDF } from '../lib/exportUtils';
 import EditRegistrationModal from '../components/admin/EditRegistrationModal';
+import GoogleSheetsModal from '../components/admin/GoogleSheetsModal';
 import { Shield, Users, Calendar, LayoutGrid, Search, Sparkles, Plus, X, Trash2, ChevronRight, Activity, CircleDot, UserCheck, CalendarDays, Layers, Pencil, ShieldCheck, UserPlus, Save, AlertCircle, CheckCircle2, FileSpreadsheet, FileText, Edit3, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminNav from '../components/AdminNav';
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
     const [slotRegistrations, setSlotRegistrations] = useState<any[]>([]);
     const [inspectingLoading, setInspectingLoading] = useState(false);
     const [editingRegistrationModalData, setEditingRegistrationModalData] = useState<any | null>(null);
+    const [googleSheetsModalOpen, setGoogleSheetsModalOpen] = useState(false);
 
     // Members management state
     const [membersList, setMembersList] = useState<any[]>([]);
@@ -929,6 +931,13 @@ export default function AdminDashboard() {
                                 >
                                     <FileText size={14} /> Export PDF
                                 </button>
+                                <button
+                                    onClick={() => setGoogleSheetsModalOpen(true)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30 text-xs font-semibold transition-all shadow-sm"
+                                    title="View & Configure Live Google Sheet"
+                                >
+                                    <FileSpreadsheet size={14} className="text-emerald-400" /> Live Sheet
+                                </button>
                             </div>
                         </div>
 
@@ -1240,6 +1249,14 @@ export default function AdminDashboard() {
                         fetchAdminSlots(viewingEvent.id, viewingDay);
                     }
                 }}
+            />
+
+            {/* Live Google Sheets Modal */}
+            <GoogleSheetsModal
+                isOpen={googleSheetsModalOpen}
+                onClose={() => setGoogleSheetsModalOpen(false)}
+                adminSlots={adminSlots}
+                eventTitle={viewingEvent?.title || 'Event'}
             />
         </div>
     );

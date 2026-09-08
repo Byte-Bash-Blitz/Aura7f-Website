@@ -3,6 +3,7 @@ import { supabase, Event, EventRegistration } from '../../lib/supabase'
 import Modal, { ConfirmDialog } from '../ui/Modal'
 import { formatTime12h } from '../../lib/utils'
 import EditRegistrationModal from './EditRegistrationModal'
+import GoogleSheetsModal from './GoogleSheetsModal'
 import { exportSlotsToExcel, exportSlotsToPDF } from '../../lib/exportUtils'
 
 export default function RegistrationManagement() {
@@ -13,6 +14,7 @@ export default function RegistrationManagement() {
   const [viewingRegistration, setViewingRegistration] = useState<EventRegistration | null>(null)
   const [editingRegistration, setEditingRegistration] = useState<EventRegistration | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [googleSheetsModalOpen, setGoogleSheetsModalOpen] = useState(false)
 
   useEffect(() => {
     fetchEvents()
@@ -187,6 +189,12 @@ export default function RegistrationManagement() {
             >
               Export CSV
             </button>
+            <button
+              onClick={() => setGoogleSheetsModalOpen(true)}
+              className="bg-emerald-600/30 border border-emerald-500/50 text-emerald-300 px-3.5 py-1.5 rounded-lg hover:bg-emerald-600/40 transition-colors text-xs font-semibold"
+            >
+              📊 Live Sheet
+            </button>
           </div>
         )}
       </div>
@@ -339,6 +347,21 @@ export default function RegistrationManagement() {
         message="Are you sure you want to remove this registration? This action cannot be undone."
         confirmText="Remove"
         type="danger"
+      />
+
+      {/* Live Google Sheets Modal */}
+      <GoogleSheetsModal
+        isOpen={googleSheetsModalOpen}
+        onClose={() => setGoogleSheetsModalOpen(false)}
+        eventTitle={events.find(e => e.id === selectedEvent)?.title || 'Event'}
+        adminSlots={registrations.map(r => ({
+          day_number: 1,
+          slot_date: events.find(e => e.id === selectedEvent)?.date || '',
+          start_time: events.find(e => e.id === selectedEvent)?.time || '10:00:00',
+          end_time: events.find(e => e.id === selectedEvent)?.end_time || '17:00:00',
+          capacity: 1,
+          registrations: [{ event_registrations: r, user_email: r.email }]
+        }))}
       />
     </div>
   )
