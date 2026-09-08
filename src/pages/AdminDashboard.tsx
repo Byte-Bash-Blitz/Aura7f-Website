@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateSlots, getAvailableSlots, cancelSlot } from '../lib/slotApi';
 import { formatTime12h } from '../lib/utils';
-import { Shield, Users, Calendar, LayoutGrid, Search, Sparkles, Plus, X, Trash2, ChevronRight, Activity, CircleDot, UserCheck, CalendarDays, Layers, Pencil, ShieldCheck, UserPlus, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { exportSlotsToExcel, exportSlotsToPDF } from '../lib/exportUtils';
+import EditRegistrationModal from '../components/admin/EditRegistrationModal';
+import { Shield, Users, Calendar, LayoutGrid, Search, Sparkles, Plus, X, Trash2, ChevronRight, Activity, CircleDot, UserCheck, CalendarDays, Layers, Pencil, ShieldCheck, UserPlus, Save, AlertCircle, CheckCircle2, FileSpreadsheet, FileText, Edit3, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminNav from '../components/AdminNav';
 
@@ -52,6 +54,7 @@ export default function AdminDashboard() {
     const [inspectingSlot, setInspectingSlot] = useState<any | null>(null);
     const [slotRegistrations, setSlotRegistrations] = useState<any[]>([]);
     const [inspectingLoading, setInspectingLoading] = useState(false);
+    const [editingRegistrationModalData, setEditingRegistrationModalData] = useState<any | null>(null);
 
     // Members management state
     const [membersList, setMembersList] = useState<any[]>([]);
@@ -899,18 +902,45 @@ export default function AdminDashboard() {
             {viewingEvent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setViewingEvent(null)}></div>
-                    <div className="relative z-10 bg-[#0d1322] border border-white/10 rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-2xl">
+                    <div className="relative z-10 bg-[#0d1322] border border-white/10 rounded-2xl p-6 md:p-8 w-full max-w-3xl shadow-2xl">
                         <button onClick={() => setViewingEvent(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
                             <X size={22} />
                         </button>
 
-                        <h2 className="text-xl font-semibold text-white mb-1 pr-8">Slot Overview: {viewingEvent.title}</h2>
-                        <p className="text-sm text-slate-500 mb-5">Review and manage time slot bookings.</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pr-8">
+                            <div>
+                                <h2 className="text-xl font-semibold text-white mb-0.5">Slot Overview: {viewingEvent.title}</h2>
+                                <p className="text-xs text-slate-400">Review, export, and manage time slot bookings.</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => exportSlotsToExcel(viewingEvent.title, adminSlots, viewingDay)}
+                                    disabled={adminSlots.length === 0}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold transition-all disabled:opacity-50"
+                                    title="Export to Excel Spreadsheet (.xlsx)"
+                                >
+                                    <FileSpreadsheet size={14} /> Export Excel
+                                </button>
+                                <button
+                                    onClick={() => exportSlotsToPDF(viewingEvent.title, adminSlots, viewingDay)}
+                                    disabled={adminSlots.length === 0}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 text-xs font-semibold transition-all disabled:opacity-50"
+                                    title="Export to PDF Document (.pdf)"
+                                >
+                                    <FileText size={14} /> Export PDF
+                                </button>
+                            </div>
+                        </div>
 
-                        <div className="flex gap-2 mb-6 border-b border-white/[0.08] pb-4">
-                            {[1, 2, 3].map(d => (
-                                <button type="button" key={d} onClick={() => setViewingDay(d)} className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${viewingDay === d ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:border-amber-500/30'}`}>Day {d}</button>
-                            ))}
+                        <div className="flex items-center justify-between gap-2 mb-5 border-b border-white/[0.08] pb-4">
+                            <div className="flex gap-2">
+                                {[1, 2, 3].map(d => (
+                                    <button type="button" key={d} onClick={() => setViewingDay(d)} className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${viewingDay === d ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-white/[0.04] text-slate-400 border-white/[0.08] hover:border-amber-500/30'}`}>Day {d}</button>
+                                ))}
+                            </div>
+                            <span className="text-xs text-slate-400 font-mono">
+                                Total: {adminSlots.length} Slots
+                            </span>
                         </div>
 
                         {adminSlotsLoading ? (
@@ -923,23 +953,74 @@ export default function AdminDashboard() {
                                 <p className="text-xs text-red-300/70 mt-1.5">Use the "Generate Event Slots" tool to create them.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-96 overflow-y-auto pr-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-2">
                                 {adminSlots.map(slot => {
                                     const booked = slot.capacity - slot.spots_remaining;
                                     const isFull = slot.spots_remaining === 0;
+                                    const slotRegs = slot.registrations || [];
 
                                     return (
-                                        <button
+                                        <div
                                             key={slot.id}
-                                            onClick={() => setInspectingSlot(slot)}
-                                            className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isFull ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20' : 'bg-white/[0.04] border-white/[0.08] hover:bg-amber-500/10 hover:border-amber-500/30'
-                                                }`}
+                                            className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
+                                                isFull ? 'bg-red-500/10 border-red-500/30' : booked > 0 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-white/[0.04] border-white/[0.08]'
+                                            }`}
                                         >
-                                            <span className={`font-mono text-sm font-bold ${isFull ? 'text-red-400' : 'text-slate-200'}`}>{formatTime12h(slot.start_time)}</span>
-                                            <span className={`text-[10px] uppercase font-bold tracking-wider mt-1 px-2 py-0.5 rounded-full ${isFull ? 'bg-red-500/20 text-red-300' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                                                {booked} / {slot.capacity}
-                                            </span>
-                                        </button>
+                                            <div>
+                                                <div className="flex items-center justify-between w-full mb-2">
+                                                    <span className={`font-mono text-sm font-bold ${isFull ? 'text-red-400' : 'text-slate-200'}`}>
+                                                        {formatTime12h(slot.start_time)}
+                                                    </span>
+                                                    <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+                                                        isFull ? 'bg-red-500/20 text-red-300' : booked > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/10 text-emerald-400'
+                                                    }`}>
+                                                        {booked} / {slot.capacity}
+                                                    </span>
+                                                </div>
+
+                                                {/* Filled User Name Display */}
+                                                <div className="my-2 min-h-[2rem]">
+                                                    {slotRegs.length === 0 ? (
+                                                        <p className="text-[11px] text-slate-500 italic">Unbooked slot</p>
+                                                    ) : (
+                                                        <div className="space-y-1">
+                                                            {slotRegs.map((sr: any) => {
+                                                                const details = sr.event_registrations || sr;
+                                                                const name = details?.name || sr.user_email || 'Filled User';
+                                                                return (
+                                                                    <div key={sr.id} className="flex items-center justify-between gap-1 bg-white/[0.06] border border-white/[0.08] px-2 py-1 rounded text-xs text-amber-200 font-medium truncate" title={name}>
+                                                                        <div className="flex items-center gap-1.5 truncate">
+                                                                            <UserCheck size={13} className="text-amber-400 shrink-0" />
+                                                                            <span className="truncate">{name}</span>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setEditingRegistrationModalData(details || sr);
+                                                                            }}
+                                                                            className="p-0.5 text-slate-400 hover:text-amber-300 transition-colors shrink-0"
+                                                                            title="Edit filled user data"
+                                                                        >
+                                                                            <Pencil size={12} />
+                                                                        </button>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setInspectingSlot(slot)}
+                                                className="w-full mt-2 text-xs font-semibold py-1.5 px-2 rounded bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors flex items-center justify-center gap-1"
+                                            >
+                                                <span>View Details</span>
+                                                <ChevronRight size={14} />
+                                            </button>
+                                        </div>
                                     )
                                 })}
                             </div>
@@ -957,13 +1038,15 @@ export default function AdminDashboard() {
                             <X size={22} />
                         </button>
 
-                        <div className="flex items-center gap-3 mb-6 border-b border-white/[0.08] pb-4">
-                            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                <Sparkles size={20} />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-semibold text-white">Slot: {formatTime12h(inspectingSlot.start_time)}</h2>
-                                <p className="text-slate-400 text-sm">Total Capacity: {inspectingSlot.capacity}</p>
+                        <div className="flex items-center justify-between gap-3 mb-6 border-b border-white/[0.08] pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                    <Sparkles size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-semibold text-white">Slot: {formatTime12h(inspectingSlot.start_time)}</h2>
+                                    <p className="text-slate-400 text-sm">Total Capacity: {inspectingSlot.capacity}</p>
+                                </div>
                             </div>
                         </div>
 
@@ -993,9 +1076,19 @@ export default function AdminDashboard() {
                                                         <p className="text-xs text-slate-400 font-mono">{esr.user_email}</p>
                                                     </div>
                                                 </div>
-                                                <button onClick={() => handleRemoveRegistration(esr)} className="p-2 text-red-400/70 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/40 rounded-lg transition-all" title="Remove Record">
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setEditingRegistrationModalData(details || esr)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all"
+                                                        title="Edit User Filled Data"
+                                                    >
+                                                        <Pencil size={14} />
+                                                        <span>Edit Option</span>
+                                                    </button>
+                                                    <button onClick={() => handleRemoveRegistration(esr)} className="p-1.5 text-red-400/70 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/40 rounded-lg transition-all" title="Remove Record">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             {/* Project Showcase Details Map if exists */}
@@ -1133,6 +1226,21 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Edit Registration Modal */}
+            <EditRegistrationModal
+                isOpen={!!editingRegistrationModalData}
+                registration={editingRegistrationModalData}
+                onClose={() => setEditingRegistrationModalData(null)}
+                onSaved={() => {
+                    if (inspectingSlot) {
+                        loadSlotRegistrations(inspectingSlot.id);
+                    }
+                    if (viewingEvent) {
+                        fetchAdminSlots(viewingEvent.id, viewingDay);
+                    }
+                }}
+            />
         </div>
     );
 }

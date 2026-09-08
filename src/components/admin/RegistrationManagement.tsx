@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { supabase, Event, EventRegistration } from '../../lib/supabase'
 import Modal, { ConfirmDialog } from '../ui/Modal'
 import { formatTime12h } from '../../lib/utils'
+import EditRegistrationModal from './EditRegistrationModal'
+import { exportSlotsToExcel, exportSlotsToPDF } from '../../lib/exportUtils'
 
 export default function RegistrationManagement() {
   const [events, setEvents] = useState<Event[]>([])
@@ -9,6 +11,7 @@ export default function RegistrationManagement() {
   const [registrations, setRegistrations] = useState<EventRegistration[]>([])
   const [loading, setLoading] = useState(true)
   const [viewingRegistration, setViewingRegistration] = useState<EventRegistration | null>(null)
+  const [editingRegistration, setEditingRegistration] = useState<EventRegistration | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   useEffect(() => {
@@ -71,6 +74,34 @@ export default function RegistrationManagement() {
     } catch (error) {
       console.error('Error deleting registration:', error)
     }
+  }
+
+  const handleExportExcel = () => {
+    const event = events.find(e => e.id === selectedEvent)
+    if (!event) return
+    const fakeSlots = [{
+      day_number: 1,
+      slot_date: event.date,
+      start_time: event.time || '10:00:00',
+      end_time: event.end_time || '17:00:00',
+      capacity: registrations.length,
+      registrations: registrations.map(r => ({ event_registrations: r, user_email: r.email }))
+    }]
+    exportSlotsToExcel(event.title, fakeSlots)
+  }
+
+  const handleExportPDF = () => {
+    const event = events.find(e => e.id === selectedEvent)
+    if (!event) return
+    const fakeSlots = [{
+      day_number: 1,
+      slot_date: event.date,
+      start_time: event.time || '10:00:00',
+      end_time: event.end_time || '17:00:00',
+      capacity: registrations.length,
+      registrations: registrations.map(r => ({ event_registrations: r, user_email: r.email }))
+    }]
+    exportSlotsToPDF(event.title, fakeSlots)
   }
 
   const exportToCSV = () => {
@@ -137,12 +168,26 @@ export default function RegistrationManagement() {
         </div>
         
         {events.length > 0 && registrations.length > 0 && (
-          <button
-            onClick={exportToCSV}
-            className="bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-2 rounded-lg hover:bg-green-500/30 transition-colors text-sm"
-          >
-            Export to CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportExcel}
+              className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 px-3.5 py-1.5 rounded-lg hover:bg-emerald-500/30 transition-colors text-xs font-semibold"
+            >
+              Export Excel
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="bg-indigo-500/20 border border-indigo-500/50 text-indigo-300 px-3.5 py-1.5 rounded-lg hover:bg-indigo-500/30 transition-colors text-xs font-semibold"
+            >
+              Export PDF
+            </button>
+            <button
+              onClick={exportToCSV}
+              className="bg-green-500/20 border border-green-500/50 text-green-400 px-3.5 py-1.5 rounded-lg hover:bg-green-500/30 transition-colors text-xs font-semibold"
+            >
+              Export CSV
+            </button>
+          </div>
         )}
       </div>
 
@@ -222,6 +267,12 @@ export default function RegistrationManagement() {
                               View
                             </button>
                             <button
+                              onClick={() => setEditingRegistration(reg)}
+                              className="text-amber-400 hover:text-amber-300 text-sm px-2 py-1"
+                            >
+                              Edit
+                            </button>
+                            <button
                               onClick={() => setConfirmDelete(reg.id)}
                               className="text-red-400 hover:text-red-300 text-sm px-2 py-1"
                             >
@@ -238,6 +289,18 @@ export default function RegistrationManagement() {
           )}
         </>
       )}
+
+      {/* Edit Registration Modal */}
+      <EditRegistrationModal
+        isOpen={!!editingRegistration}
+        registration={editingRegistration}
+        onClose={() => setEditingRegistration(null)}
+        onSaved={() => {
+          if (selectedEvent) {
+            fetchRegistrations(selectedEvent)
+          }
+        }}
+      />
 
       {/* View Registration Modal */}
       {viewingRegistration && (

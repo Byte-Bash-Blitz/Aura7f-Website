@@ -4,7 +4,7 @@ import { supabase, EventSlot, EventSlotRegistration } from './supabase'
  * Lists available slots for an event day
  */
 export async function getAvailableSlots(eventId: string, day: number) {
-    // We can fetch slots then fetch registrations to calculate available count.
+    // We fetch slots then fetch registrations to calculate available count and get user details.
     const { data: slots, error: slotError } = await supabase
         .from('event_slots')
         .select('*')
@@ -16,21 +16,31 @@ export async function getAvailableSlots(eventId: string, day: number) {
 
     if (!slots || slots.length === 0) return []
 
-    // Fetch all registrations for these slots to determine spots remaining
+    // Fetch all registrations for these slots with full user details
     const slotIds = slots.map(s => s.id)
     const { data: registrations, error: regError } = await supabase
         .from('event_slot_registrations')
-        .select('slot_id')
+        .select(`
+            id,
+            slot_id,
+            event_id,
+            user_email,
+            event_registrations (
+                id, name, email, discord_id, registration_no, department, year, section, clan, project_title, project_category, project_description, attending, registered_at
+            )
+        `)
         .in('slot_id', slotIds)
 
     if (regError) throw regError
 
-    // Calculate spots remaining dynamically
+    // Calculate spots remaining and attach filled user registrations dynamically
     return slots.map(slot => {
-        const bookedCount = registrations?.filter(r => r.slot_id === slot.id).length || 0
+        const slotRegs = registrations?.filter(r => r.slot_id === slot.id) || []
+        const bookedCount = slotRegs.length
         return {
             ...slot,
-            spots_remaining: Math.max(0, slot.capacity - bookedCount)
+            spots_remaining: Math.max(0, slot.capacity - bookedCount),
+            registrations: slotRegs
         }
     })
 }
