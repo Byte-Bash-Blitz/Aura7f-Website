@@ -34,7 +34,7 @@ function RouteSEO() {
     title = 'Projects & Code Relics | Aura-7F BashClan 1'
     description = 'Browse innovative software projects, tools, and open-source relics forged by Bashers in Aura-7F (BashClan 1 of Byte Bash Blitz).'
     keywords = 'aura7f projects, aura 7f code, byte bash blitz projects, bytebashblitz, bashers projects, open source, bashclan 1'
-  } else if (path === '/members' || path === '/newmembers') {
+  } else if (path === '/members' || path === '/newmembers' || path === '/members-design') {
     title = 'Clan Roster & Members | Aura-7F BashClan 1'
     description = 'Meet the Bashers, software architects, designers, and developers powering Aura-7F (BashClan 1 of Byte Bash Blitz).'
     keywords = 'aura7f members, aura 7f team, bashclan 1 roster, byte bash blitz members, bytebashblitz, bashers'
@@ -84,6 +84,7 @@ const Registration = React.lazy(() => import('./pages/Registration'))
 const HomeV3 = React.lazy(() => import('./pages/home-v3'))
 const HomeDesign = React.lazy(() => import('./pages/home-design'))
 const EventsDesign = React.lazy(() => import('./pages/events-design'))
+const MembersDesign = React.lazy(() => import('./pages/members-design'))
 const LoginDesign = React.lazy(() => import('./pages/login-design'))
 const RegistrationDesign = React.lazy(() => import('./pages/registration-design'))
 const PrivacyPolicy = React.lazy(() => import('./pages/privacy-policy'))
@@ -104,6 +105,7 @@ function AppContent() {
     location.pathname.startsWith('/home-v3') ||
     location.pathname.startsWith('/home-design') ||
     location.pathname.startsWith('/events-design') ||
+    location.pathname.startsWith('/members-design') ||
     location.pathname.startsWith('/login-design') ||
     location.pathname.startsWith('/registration-design') ||
     location.pathname.startsWith('/privacy-policy') ||
@@ -156,7 +158,7 @@ function AppContent() {
             <div className="fixed inset-0 -z-10 pointer-events-none">
               <HackerBackground color="#776c07" fontSize={16} speed={0.8} />
             </div>
-          ) : location.pathname === '/gallery' || location.pathname === '/newgallery' || location.pathname === '/newevents' || location.pathname === '/newprojects' || location.pathname === '/newmembers' || location.pathname.startsWith('/registration') || location.pathname.startsWith('/admindashboard') || location.pathname.startsWith('/guestdashboard') || location.pathname.startsWith('/newhome') || location.pathname.startsWith('/home-v3') || location.pathname.startsWith('/home-design') || location.pathname.startsWith('/events-design') || location.pathname.startsWith('/login-design') || location.pathname.startsWith('/registration-design') || location.pathname.startsWith('/privacy-policy') || location.pathname.startsWith('/betterhome') || location.pathname.startsWith('/kingdomhome') || location.pathname.startsWith('/base') || location.pathname.startsWith('/newbase') ? (
+          ) : location.pathname === '/gallery' || location.pathname === '/newgallery' || location.pathname === '/newevents' || location.pathname === '/newprojects' || location.pathname === '/newmembers' || location.pathname.startsWith('/registration') || location.pathname.startsWith('/admindashboard') || location.pathname.startsWith('/guestdashboard') || location.pathname.startsWith('/newhome') || location.pathname.startsWith('/home-v3') || location.pathname.startsWith('/home-design') || location.pathname.startsWith('/events-design') || location.pathname.startsWith('/members-design') || location.pathname.startsWith('/login-design') || location.pathname.startsWith('/registration-design') || location.pathname.startsWith('/privacy-policy') || location.pathname.startsWith('/betterhome') || location.pathname.startsWith('/kingdomhome') || location.pathname.startsWith('/base') || location.pathname.startsWith('/newbase') ? (
             null
           ) : (
             <div className="fixed inset-0 -z-10 pointer-events-none">
@@ -164,8 +166,8 @@ function AppContent() {
             </div>
           )}
           {!hideNavAndFooter && <Header />}
-          <main className={`${location.pathname === '/gallery' || location.pathname === '/newgallery' || location.pathname === '/newevents' || location.pathname === '/newprojects' || location.pathname === '/newmembers' || location.pathname.startsWith('/registration') || location.pathname.startsWith('/admindashboard') || location.pathname.startsWith('/guestdashboard') || location.pathname.startsWith('/newhome') || location.pathname.startsWith('/home-v3') || location.pathname.startsWith('/home-design') || location.pathname.startsWith('/events-design') || location.pathname.startsWith('/login-design') || location.pathname.startsWith('/registration-design') || location.pathname.startsWith('/privacy-policy') || location.pathname.startsWith('/betterhome') || location.pathname.startsWith('/kingdomhome') || location.pathname.startsWith('/base') || location.pathname.startsWith('/newbase') ? 'w-full' : 'container mx-auto px-3 sm:px-6'} ${hideNavAndFooter ? 'pt-0 pb-0' : 'pt-20 pb-1 md:pb-2 lg:pb-2'} min-h-screen overflow-hidden`}>
-            <div className={`${location.pathname === '/gallery' || location.pathname === '/newgallery' || location.pathname === '/newevents' || location.pathname === '/newprojects' || location.pathname === '/newmembers' || location.pathname.startsWith('/registration') || location.pathname.startsWith('/admindashboard') || location.pathname.startsWith('/guestdashboard') ? 'max-w-[95rem]' : (location.pathname.startsWith('/newhome') || location.pathname.startsWith('/home-v3') || location.pathname.startsWith('/home-design') || location.pathname.startsWith('/events-design') || location.pathname.startsWith('/login-design') || location.pathname.startsWith('/registration-design') || location.pathname.startsWith('/privacy-policy') || location.pathname.startsWith('/betterhome') || location.pathname.startsWith('/kingdomhome') || location.pathname.startsWith('/base') || location.pathname.startsWith('/newbase')) ? 'w-full max-w-none' : 'max-w-6xl'} mx-auto p-0 relative z-20`}>
+          <main className={`${location.pathname === '/gallery' || location.pathname === '/newgallery' || location.pathname === '/newevents' || location.pathname === '/newprojects' || location.pathname === '/newmembers' || location.pathname.startsWith('/registration') || location.pathname.startsWith('/admindashboard') || location.pathname.startsWith('/guestdashboard') || location.pathname.startsWith('/newhome') || location.pathname.startsWith('/home-v3') || location.pathname.startsWith('/home-design') || location.pathname.startsWith('/events-design') || location.pathname.startsWith('/members-design') || location.pathname.startsWith('/login-design') || location.pathname.startsWith('/registration-design') || location.pathname.startsWith('/privacy-policy') || location.pathname.startsWith('/betterhome') || location.pathname.startsWith('/kingdomhome') || location.pathname.startsWith('/base') || location.pathname.startsWith('/newbase') ? 'w-full' : 'container mx-auto px-3 sm:px-6'} ${hideNavAndFooter ? 'pt-0 pb-0' : 'pt-20 pb-1 md:pb-2 lg:pb-2'} min-h-screen overflow-hidden`}>
+            <div className={`${location.pathname === '/gallery' || location.pathname === '/newgallery' || location.pathname === '/newevents' || location.pathname === '/newprojects' || location.pathname === '/newmembers' || location.pathname.startsWith('/registration') || location.pathname.startsWith('/admindashboard') || location.pathname.startsWith('/guestdashboard') ? 'max-w-[95rem]' : (location.pathname.startsWith('/newhome') || location.pathname.startsWith('/home-v3') || location.pathname.startsWith('/home-design') || location.pathname.startsWith('/events-design') || location.pathname.startsWith('/members-design') || location.pathname.startsWith('/login-design') || location.pathname.startsWith('/registration-design') || location.pathname.startsWith('/privacy-policy') || location.pathname.startsWith('/betterhome') || location.pathname.startsWith('/kingdomhome') || location.pathname.startsWith('/base') || location.pathname.startsWith('/newbase')) ? 'w-full max-w-none' : 'max-w-6xl'} mx-auto p-0 relative z-20`}>
               <Routes>
                 <Route path="/" element={<Navigate to="/home" replace />} />
                 <Route path="/home" element={<Home />} />
@@ -185,6 +187,11 @@ function AppContent() {
                 <Route path="/events-design" element={
                   <React.Suspense fallback={<div className="h-screen w-full bg-[#1a120b] flex items-center justify-center text-[#f4d03f] font-black uppercase">Loading Quest Board...</div>}>
                     <EventsDesign />
+                  </React.Suspense>
+                } />
+                <Route path="/members-design" element={
+                  <React.Suspense fallback={<div className="h-screen w-full bg-[#1a120b] flex items-center justify-center text-[#f4d03f] font-black uppercase">Loading Clan...</div>}>
+                    <MembersDesign />
                   </React.Suspense>
                 } />
                 <Route path="/registration-design/:eventId" element={

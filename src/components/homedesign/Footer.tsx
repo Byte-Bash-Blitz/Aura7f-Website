@@ -51,7 +51,7 @@ export default function Footer() {
               {[
                 { label: 'Home', href: '/home' },
                 { label: 'About', href: '/about' },
-                { label: 'Members', href: '/members' },
+                { label: 'Members', href: '/members-design' },
                 { label: 'Events', href: '/events' },
                 { label: 'Projects', href: '/projects' },
                 { label: 'Gallery', href: '/gallery' },

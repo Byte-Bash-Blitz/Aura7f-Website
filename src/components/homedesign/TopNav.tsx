@@ -28,7 +28,7 @@ export default function TopNav() {
 
   const navLinks = [
     { label: 'Home', href: '/home-design' },
-    { label: 'Members', href: '/members' },
+    { label: 'Members', href: '/members-design' },
     { label: 'Events', href: '/events-design' },
     { label: 'Projects', href: '/projects' },
     { label: 'About', href: '/about' },
